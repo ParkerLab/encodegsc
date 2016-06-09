@@ -1,16 +1,16 @@
 #!/usr/bin/python
 
-import sys, getopt
-
+import getopt
 from random import random
+import sys
+
+from encode_gsc import base_types
 
 verbose = False
 verbose_debug = False
 suppress_warnings = False
 output = sys.stdout
 
-import base_types
-from base_types import *
 
 def generateSequences(number=1, means = [0.1, 0.3, 0.5, 0.7, 0.9], meanBlockLength=1000, sdBlockLength=200, regLength=100000):
     from random import gauss as normal
@@ -40,7 +40,7 @@ def generateSequences(number=1, means = [0.1, 0.3, 0.5, 0.7, 0.9], meanBlockLeng
     of.close()
 
 def change_point_mle(data, lb, ub, si, bl):
-    """Process 4.7 from the paper. 
+    """Process 4.7 from the paper.
 
     Data should be a cumm sum object.
     """
@@ -59,14 +59,14 @@ def change_point_mle(data, lb, ub, si, bl):
 
     p1 = (j/n)*(s1_mean - tot_mean)**2
     p2 = ((n-j)/n)*(s2_mean - tot_mean)**2
-    
+
     if verbose_debug:
         print "%i\t%i\t%i\t%.3f\t%.3f\t%.3f\t%.3f" % \
             ( lb, ub, si, s1_mean, s2_mean, tot_mean, p1+p2 )
     return p1+p2
 
 def split_var_estimate( data, lb, ub, si, bl ):
-    """Process 4.8 from the paper. 
+    """Process 4.8 from the paper.
 
     Data should be a cumm sum object.
     """
@@ -79,24 +79,24 @@ def split_var_estimate( data, lb, ub, si, bl ):
     # the two sum's coefficients
     p1_coef = t/(n**2)
     p2_coef = (n-t)/(n**2)
-    
+
     # the two sections means
     s1_mean = float(data.value(si) - data.value(lb))/t
     s2_mean = float(data.value(ub) - data.value(si+1))/(ub-si+1)
-    
+
     def wmn(i, offset):
         return float(data.value(lb+i+offset) - data.value(lb+i))/offset
 
     # part 1 of equation 4.8
     offset = int(t*bl/n)
     sti, ei = ( 0, int(t-t*bl/n) )
-    p1 = p1_coef*sum( [(wmn(i, offset) - s1_mean)**2 for i in xrange(sti, ei)] ) 
+    p1 = p1_coef*sum( [(wmn(i, offset) - s1_mean)**2 for i in xrange(sti, ei)] )
 
     # part 2 of equation 4.8
     sti, ei = ( int(t+1), int(n-(n-t)*bl/n) )
     offset = int((n-t)*bl/n)
-    p2 = p2_coef*sum( [(wmn(i, offset) - s2_mean)**2 for i in xrange(sti, ei)] ) 
-    
+    p2 = p2_coef*sum( [(wmn(i, offset) - s2_mean)**2 for i in xrange(sti, ei)] )
+
     return p1+p2
 
 def split_p_value( data, lb, ub, si, bl ):
@@ -131,7 +131,7 @@ def segment(data, minLength, b=0, maxIterations=100, M_TOL = 0):
             # loop through each possible index and calculate the scores
             # note that we're calling the iter_split_points method:
             #   this is an optimization for binary features - it only looks
-            #   at the potential split points 
+            #   at the potential split points
             if verbose_debug:
                 print "lb\tub\tsi\tl_mean\tu_mean\tt_mean\tscore"
             for split_index in data.iter_split_points(lb+minLength, ub-minLength):
@@ -163,14 +163,14 @@ def segment(data, minLength, b=0, maxIterations=100, M_TOL = 0):
 
             # find the best score and it's index
             score, index = find_best_window_score(data, splitWindow[0], splitWindow[1])
-            
+
             # if there is no possible split, continue
             if index == None:
                 continue
-            
+
             if b > 0:
                 # calculate J
-                V = split_var_estimate(data, splitWindow[0], splitWindow[1], index, minLength) 
+                V = split_var_estimate(data, splitWindow[0], splitWindow[1], index, minLength)
                 B = score
                 reg_len = float(splitWindow[1] - splitWindow[0])
                 lam = minLength*reg_len/( splitIndexes[-1] - splitIndexes[0] )
@@ -187,18 +187,18 @@ def segment(data, minLength, b=0, maxIterations=100, M_TOL = 0):
                 bestWindow = splitWindowIndex
 
         if bestIndex != None:
-            best_V_score = split_var_estimate(data, splitIndexes[bestWindow], splitIndexes[bestWindow+1], bestIndex, minLength) 
+            best_V_score = split_var_estimate(data, splitIndexes[bestWindow], splitIndexes[bestWindow+1], bestIndex, minLength)
             return {'Best Window': bestWindow, 'Best Index': bestIndex, 'M': bestScore, 'V': best_V_score}
         # otherwise, return None
         else:
             return None
-   
+
     ### Actually do stuff ##############################################################################################
     splitIndexes = [0,data.length]
 
     # if maxIterations isn't set, set it to the max number of splits that are
     # possible given the minLength restriction
-    if maxIterations == None: 
+    if maxIterations == None:
         maxIterations = int( ( 2.0*len(data) )/minLength )
 
     for loop in xrange(maxIterations):
@@ -231,7 +231,7 @@ def merge_boundaries(boundaries, regions_list, min_boundary_len):
     boundaries = list(set(flatten(boundaries)))
     # sort the boundaries list
     boundaries.sort()
-    
+
     # test for regions that are too small
     loop = 0
     while loop < len(boundaries)-1:
@@ -239,7 +239,7 @@ def merge_boundaries(boundaries, regions_list, min_boundary_len):
             print "Curr Boundaries: ", boundaries
 
         rs = boundaries[loop]
-        re = boundaries[loop+1] 
+        re = boundaries[loop+1]
 
         if re - rs + 1 < min_boundary_len:
             # if rs == 0, then we MUST put this in with the next bucket
@@ -258,7 +258,7 @@ def merge_boundaries(boundaries, regions_list, min_boundary_len):
                 mean2 = next_reg.featuresLength()/float( boundaries[loop+1] - boundaries[loop] + 1 )
 
                 current_mean = base_region[rs:re].featuresLength()/float( re - rs + 1 )
-                
+
                 if verbose:
                     print "Lower Mean: %.5f   Current Mean: %.5f    Upper Mean: %.5f" % (mean1, current_mean, mean2)
 
@@ -287,41 +287,41 @@ def usage():
   -1 --input1: region1 to split, in a .bed file.
   -2 --input2: region2 to split, in a .bed file.
 
-  -d --domain : the domain of the data files, the portion of the genome over 
-     which these features (-1 and -2) are defined.  The support of the 
+  -d --domain : the domain of the data files, the portion of the genome over
+     which these features (-1 and -2) are defined.  The support of the
      statistics. Usually determined by array coverage or "alignibility".  If the
      features are defined everywhere (e.g. such as may be the case in C. elegans
-     data), then this file contains one line for each chromosome, with: 
+     data), then this file contains one line for each chromosome, with:
      "chr_name 0 chr_length" on each line.
 
-  -m --min_length: For the "double bootstrap" in any organism this should be at 
-     least 5,000,000.  For human or mouse, it should be at least 1,000,000 in 
-     general, for Drosophila at least 500,000, and for C. elegans, at least 
-     250,000.  Larger values will cause down stream analysis to be more 
-     conservative, so initial runs should use quite large values.  If 
-     significance is obtained with larger values, it will certainly hold for 
+  -m --min_length: For the "double bootstrap" in any organism this should be at
+     least 5,000,000.  For human or mouse, it should be at least 1,000,000 in
+     general, for Drosophila at least 500,000, and for C. elegans, at least
+     250,000.  Larger values will cause down stream analysis to be more
+     conservative, so initial runs should use quite large values.  If
+     significance is obtained with larger values, it will certainly hold for
      smaller ones.
-    
+
   -s --max_splits: The maximum number of times to split a region. Defaults to
      no maximum. Recommended: no maximum.
 
   -p --plot: Plot the CDF of the region data and overlay the calculated split
-     points. This option requires that the pylab module is part of your python 
+     points. This option requires that the pylab module is part of your python
      distribution ( usually part of matplotlib ) and that you are running this
      locally.
 
   -g --generate_test_data: Generates a region of test data and writes it to
      sim_output.bed and sim_lengths.txt. The region will be approximately 500k
-     BP's long and consist of intervals with normally distributed lengths of 
+     BP's long and consist of intervals with normally distributed lengths of
      mean 1k BP's and SD's of 200 BP's. The region will consist of 5 ( unnamed )
-     subregions of length 100k and with means (0.1, 0.3, 0.5, 0.7, 0.9). For 
+     subregions of length 100k and with means (0.1, 0.3, 0.5, 0.7, 0.9). For
      finer control over the generation procedure, load this as a module and
      call the function generateSequences directly.
 
-  -o --output_file_prefix: A file prefix to name the output files. For instance, 
+  -o --output_file_prefix: A file prefix to name the output files. For instance,
      if the input file names are test.bed and test.txt, and the prefix is split_
      the files will be written to split_test.bed and split_lengths.bed. The
-     prefix defaults to split_. THIS WILL SILENTLY OVERWRITE ANY EXISTING FILES 
+     prefix defaults to split_. THIS WILL SILENTLY OVERWRITE ANY EXISTING FILES
      OF THE SAME NAME !
 
   -v --verbose
@@ -366,7 +366,7 @@ def main():
         elif o in ("-s", "--max_splits"):
             max_splits = int(a)
         elif o in ("-p", "--plot"):
-            try: 
+            try:
                 global pylab
                 import pylab
             except ImportError:
@@ -383,10 +383,10 @@ def main():
         else:
             assert False, "unhandled option %s" % o
 
-    try: 
+    try:
         assert vars().has_key('split_file') or ( vars().has_key('split_file1') and vars().has_key('split_file2') )
         assert vars().has_key('lengths_file')
-        assert vars().has_key('min_length') 
+        assert vars().has_key('min_length')
     except Exception, inst:
         print inst
         usage()
@@ -398,8 +398,8 @@ def main():
         split_files = (split_file1, split_file2)
 
     # build the regions list
-    regions_s_to_split = [parse_bed_file(fp, lengths_file) for fp in split_files ]
-    if verbose: 
+    regions_s_to_split = [base_types.parse_bed_file(fp, lengths_file) for fp in split_files ]
+    if verbose:
         print >> output, "Region files parsed."
 
     # close all of the open files
@@ -456,7 +456,7 @@ def main():
                 print "Press enter to continue..."
                 raw_input()
 
-        if verbose: 
+        if verbose:
             print boundaries
 
         for data, baseRegion in zip(region_list, baseRegions):
