@@ -10,13 +10,12 @@ except ImportError:
 
 requirements = [
     'matplotlib',
-    'pylab',
     'rpy2'
 ]
 
 setup(
     name='encode_gsc',
-    version='0.9.0',
+    version='0.9.1',
     description='ENCODE Genome Structure Correction Tools',
     long_description="""Assessing the significance of observations within large scale genomic studies using random subsampled genomic region is a difficult problem because there often exists a complex dependency structure between observations. GSC is a data subsampling approach based on a block stationary model for genomic features to alleviate the hidden dependencies. This model is motivated by earlier studies of DNA sequences, which show that there are global shifts in base composition, but that certain sequence characteristics are locally unchanging.""",
     author="ENCODE",
